@@ -12,6 +12,9 @@
    */
   class RewardsWidget {
     constructor() {
+      // Log version for debugging
+      console.log('[RewardsWidget v2.0.1] Initializing new version with proper text display');
+      
       // Configuration from page
       this.config = window.RewardsProConfig || {};
       
