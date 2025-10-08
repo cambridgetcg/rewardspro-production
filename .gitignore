@@ -18,6 +18,9 @@ database.sqlite
 *.md
 **/*.md
 /docs/
+!docs/
+!docs/customer-account-extension-research/
+!docs/customer-account-extension-research/**
 /guides/
 /documentation/
 *.guide.md
