@@ -1,217 +1,364 @@
 /**
- * Membership Page - Main loyalty program page
- * Displays tier info, store credit, and rewards summary
+ * Membership Page - Full Page Loyalty View
+ *
+ * Displays as a dedicated "Membership" page in customer account navigation.
+ * Shows expanded view with: Tier details, store credit, transactions, lifetime stats.
+ *
+ * Notes:
+ * - Uses same data source as ProfileBlock
+ * - Provides more detailed view for customers who want to explore rewards
+ * - Can be extended with transaction history, tier benefits, etc.
  */
 
+import { useEffect, useState } from 'react';
 import {
   reactExtension,
-  Page,
-  BlockStack,
-  InlineStack,
-  Grid,
-  Text,
   Banner,
+  BlockStack,
+  Button,
+  Card,
+  Heading,
+  InlineStack,
+  Progress,
   SkeletonText,
-  SkeletonTextBlock,
+  Text,
   useApi,
 } from '@shopify/ui-extensions-react/customer-account';
-import { useLoyaltyData } from './hooks/useLoyaltyData';
-import { TierInfoCard } from './components/TierInfoCard';
-import { StoreCreditCard } from './components/StoreCreditCard';
 
-// Global error handlers for Web Worker
-// Must be at module level to capture all errors
-self.addEventListener('unhandledrejection', (event) => {
-  console.error('[RewardsPro] Unhandled promise rejection:', event.reason);
+// Type definitions matching API response
+interface LoyaltyData {
+  success: boolean;
+  enrolled: boolean;
+  customer?: {
+    id: string;
+    displayName: string;
+    email: string;
+  };
+  data?: {
+    balance: {
+      storeCredit: number;
+      storeCreditFormatted: string;
+      pendingCredit: number;
+    };
+    tier: {
+      name: string;
+      level: number;
+      cashbackRate: number;
+      benefits: string[];
+    };
+    progress: {
+      currentSpend: number;
+      nextTier: string | null;
+      progressPercentage: number;
+      remainingToNextTier: number;
+    };
+    lifetime: {
+      earned: number;
+      spent: number;
+      redeemed: number;
+      orderCount?: number;
+    };
+  };
+  message?: string;
+  benefits?: string[];
+}
 
-  // Send error to backend for monitoring
-  const token = event.reason?.token; // If available from context
-  fetch('https://rewardspro-production-nnwf.vercel.app/api/errors', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: 'unhandledRejection',
-      message: event.reason?.toString(),
-      stack: event.reason?.stack,
-      timestamp: new Date().toISOString(),
-    }),
-  }).catch(() => {
-    // Silently fail if error logging fails
-  });
-
-  event.preventDefault();
-});
-
-self.addEventListener('error', (event) => {
-  console.error('[RewardsPro] Uncaught error:', event.error);
-
-  fetch('https://rewardspro-production-nnwf.vercel.app/api/errors', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: 'uncaughtError',
-      message: event.message,
-      filename: event.filename,
-      lineno: event.lineno,
-      colno: event.colno,
-      stack: event.error?.stack,
-      timestamp: new Date().toISOString(),
-    }),
-  }).catch(() => {});
-
-  event.preventDefault();
-});
-
+// Register extension for full page
 export default reactExtension(
   'customer-account.page.render',
   () => <MembershipPage />
 );
 
 function MembershipPage() {
-  const { i18n } = useApi();
-  const { data, loading, error } = useLoyaltyData();
+  const { sessionToken, i18n, analytics } = useApi();
+  const [data, setData] = useState<LoyaltyData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  return (
-    <Page
-      title={i18n.translate('membershipTitle', { fallback: 'Rewards Membership' })}
-    >
-      <BlockStack spacing="base">
-        {/* Loading State */}
-        {loading && <LoadingSkeleton />}
+  const fetchLoyaltyData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        {/* Error State */}
-        {error && (
-          <Banner status="critical">
-            <Text>
-              {i18n.translate('errorLoading', {
-                fallback: 'Unable to load your rewards information. Please try again later.',
-              })}
-            </Text>
-          </Banner>
-        )}
+      const token = await sessionToken.get();
 
-        {/* Not Enrolled State */}
-        {data && !data.enrolled && (
-          <Banner status="info">
-            <BlockStack spacing="tight">
-              <Text emphasis="bold">
-                {i18n.translate('notEnrolled', {
-                  fallback: 'Join our Rewards Program',
-                })}
-              </Text>
-              <Text>
-                {data.message || 'Start earning rewards on every purchase!'}
-              </Text>
-            </BlockStack>
-          </Banner>
-        )}
+      const response = await fetch(
+        'https://rewardspro-production-nnwf.vercel.app/api/customer-account/loyalty',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-        {/* Enrolled - Show Loyalty Data */}
-        {data && data.enrolled && data.data && (
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const result: LoyaltyData = await response.json();
+      setData(result);
+
+      if (result.success) {
+        analytics.publish('rewardspro:membership_page_viewed', {
+          enrolled: result.enrolled,
+          tier: result.data?.tier.name || 'none',
+        });
+      }
+    } catch (err) {
+      console.error('[MembershipPage] Error fetching loyalty data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load loyalty data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLoyaltyData();
+  }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <BlockStack spacing="loose">
+        <Heading level={1}>Membership</Heading>
+        <Card>
           <BlockStack spacing="base">
-            {/* Welcome Message */}
-            <Text size="medium">
-              {i18n.translate('welcome', {
-                fallback: `Welcome back, ${data.customer?.displayName || 'Member'}!`,
-              })}
-            </Text>
+            <SkeletonText />
+            <SkeletonText />
+            <SkeletonText />
+          </BlockStack>
+        </Card>
+      </BlockStack>
+    );
+  }
 
-            {/* Main Cards Grid */}
-            <Grid
-              columns={['fill', 'fill']}
-              spacing="base"
-            >
-              {/* Tier Information Card */}
-              <TierInfoCard
-                tierName={data.data.tier.name}
-                tierLevel={data.data.tier.level}
-                cashbackRate={data.data.tier.cashbackRate}
-                currentSpend={data.data.progress.currentSpend}
-                nextTier={data.data.progress.nextTier}
-                progressPercentage={data.data.progress.progressPercentage}
-                remainingToNextTier={data.data.progress.remainingToNextTier}
-                currency="$" // TODO: Use shop currency
-              />
+  // Error state
+  if (error || !data) {
+    return (
+      <BlockStack spacing="loose">
+        <Heading level={1}>Membership</Heading>
+        <Card>
+          <BlockStack spacing="base">
+            <Banner status="critical">
+              Unable to load your membership information.
+            </Banner>
+            <Button onClick={fetchLoyaltyData}>Try Again</Button>
+          </BlockStack>
+        </Card>
+      </BlockStack>
+    );
+  }
 
-              {/* Store Credit Card */}
-              <StoreCreditCard
-                balance={data.data.balance.storeCredit}
-                balanceFormatted={data.data.balance.storeCreditFormatted}
-                pendingCredit={data.data.balance.pendingCredit}
-                currency="$" // TODO: Use shop currency
-              />
-            </Grid>
-
-            {/* Lifetime Stats */}
-            <Grid
-              columns={['fill', 'fill', 'fill']}
-              spacing="base"
-            >
-              <StatCard
-                label={i18n.translate('lifetimeEarned', { fallback: 'Lifetime Earned' })}
-                value={`$${data.data.lifetime.earned.toFixed(2)}`}
-              />
-              <StatCard
-                label={i18n.translate('totalSpent', { fallback: 'Total Spent' })}
-                value={`$${data.data.lifetime.spent.toFixed(2)}`}
-              />
-              <StatCard
-                label={i18n.translate('rewardsRedeemed', { fallback: 'Rewards Redeemed' })}
-                value={`$${data.data.lifetime.redeemed.toFixed(2)}`}
-              />
-            </Grid>
-
-            {/* Tier Benefits */}
-            {data.data.tier.benefits.length > 0 && (
+  // Not enrolled state
+  if (!data.enrolled || !data.data) {
+    return (
+      <BlockStack spacing="loose">
+        <Heading level={1}>Membership</Heading>
+        <Card>
+          <BlockStack spacing="base">
+            <Heading level={2}>Join Our Rewards Program</Heading>
+            <Text>{data.message || 'Start earning rewards on every purchase!'}</Text>
+            {data.benefits && data.benefits.length > 0 && (
               <BlockStack spacing="tight">
-                <Text size="medium" emphasis="bold">
-                  {i18n.translate('yourBenefits', { fallback: 'Your Benefits' })}
-                </Text>
-                <BlockStack spacing="extraTight">
-                  {data.data.tier.benefits.map((benefit, index) => (
-                    <InlineStack key={index} spacing="tight">
-                      <Text>✓</Text>
-                      <Text>{benefit}</Text>
-                    </InlineStack>
-                  ))}
-                </BlockStack>
+                <Text emphasis="bold">Benefits:</Text>
+                {data.benefits.map((benefit, index) => (
+                  <Text key={index} size="small">
+                    ✓ {benefit}
+                  </Text>
+                ))}
               </BlockStack>
             )}
           </BlockStack>
-        )}
+        </Card>
       </BlockStack>
-    </Page>
-  );
-}
+    );
+  }
 
-// Loading Skeleton Component
-function LoadingSkeleton() {
+  const { balance, tier, progress, lifetime } = data.data;
+  const constrainedProgress = Math.min(100, Math.max(0, progress.progressPercentage));
+  const progressRatio = constrainedProgress / 100;
+  const formatAmount = (amount: number) => i18n.formatCurrency(amount);
+
   return (
-    <BlockStack spacing="base">
-      <SkeletonText lines={1} />
-      <Grid columns={['fill', 'fill']} spacing="base">
-        <SkeletonTextBlock lines={5} />
-        <SkeletonTextBlock lines={5} />
-      </Grid>
-    </BlockStack>
-  );
-}
+    <BlockStack spacing="loose">
+      {/* Page Header */}
+      <Heading level={1}>Membership</Heading>
 
-// Stat Card Component
-interface StatCardProps {
-  label: string;
-  value: string;
-}
+      {/* Welcome Message */}
+      <Card>
+        <BlockStack spacing="tight">
+          <Text size="large" emphasis="bold">
+            Welcome back, {data.customer?.displayName || 'Member'}!
+          </Text>
+          <Text appearance="subdued">
+            You're currently a <Text emphasis="bold">{tier.name}</Text> member
+          </Text>
+        </BlockStack>
+      </Card>
 
-function StatCard({ label, value }: StatCardProps) {
-  return (
-    <BlockStack spacing="extraTight">
-      <Text size="small" appearance="subdued">
-        {label}
-      </Text>
-      <Text size="large" emphasis="bold">
-        {value}
-      </Text>
+      {/* Tier & Progress Card */}
+      <Card>
+        <BlockStack spacing="base">
+          <Heading level={2}>Your Tier</Heading>
+
+          <InlineStack spacing="base" blockAlignment="center">
+            <BlockStack spacing="extraTight">
+              <Text size="extraLarge" emphasis="bold">
+                {tier.name}
+              </Text>
+              <Text appearance="subdued" size="small">
+                Level {tier.level}
+              </Text>
+            </BlockStack>
+
+            <BlockStack spacing="extraTight">
+              <Text size="large" emphasis="bold">
+                {tier.cashbackRate}%
+              </Text>
+              <Text appearance="subdued" size="small">
+                Cashback rate
+              </Text>
+            </BlockStack>
+          </InlineStack>
+
+          {progress.nextTier && (
+            <BlockStack spacing="tight">
+              <Text size="small" emphasis="bold">
+                Progress to {progress.nextTier}
+              </Text>
+
+              <Progress
+                value={progressRatio}
+                label={`${Math.round(constrainedProgress)}%`}
+                accessibilityLabel={`${Math.round(constrainedProgress)}% progress to ${progress.nextTier} tier`}
+              />
+
+              <Text size="small" appearance="subdued">
+                Spend {formatAmount(progress.remainingToNextTier)} more to reach{' '}
+                {progress.nextTier} tier and unlock higher rewards!
+              </Text>
+            </BlockStack>
+          )}
+
+          {!progress.nextTier && (
+            <Banner status="success">
+              Congratulations! You've reached the highest tier. Keep shopping to
+              maintain your status.
+            </Banner>
+          )}
+
+          {tier.benefits && tier.benefits.length > 0 && (
+            <BlockStack spacing="tight">
+              <Text size="small" emphasis="bold">
+                Your Benefits:
+              </Text>
+              {tier.benefits.map((benefit, index) => (
+                <Text key={index} size="small">
+                  • {benefit}
+                </Text>
+              ))}
+            </BlockStack>
+          )}
+        </BlockStack>
+      </Card>
+
+      {/* Store Credit Card */}
+      <Card>
+        <BlockStack spacing="base">
+          <Heading level={2}>Store Credit Balance</Heading>
+
+          <BlockStack spacing="tight">
+            <Text size="extraLarge" emphasis="bold">
+              {balance.storeCreditFormatted}
+            </Text>
+            <Text size="small" appearance="subdued">
+              Available to spend on your next order
+            </Text>
+          </BlockStack>
+
+          {balance.pendingCredit > 0 && (
+            <Banner status="info">
+              You have {formatAmount(balance.pendingCredit)} in pending credit that will
+              be available soon.
+            </Banner>
+          )}
+        </BlockStack>
+      </Card>
+
+      {/* Lifetime Stats Card */}
+      <Card>
+        <BlockStack spacing="base">
+          <Heading level={2}>Lifetime Statistics</Heading>
+
+          <InlineStack spacing="base">
+            <BlockStack spacing="tight">
+              <Text size="small" appearance="subdued">
+                Total Spent
+              </Text>
+              <Text size="large" emphasis="bold">
+                {formatAmount(lifetime.spent)}
+              </Text>
+            </BlockStack>
+
+            <BlockStack spacing="tight">
+              <Text size="small" appearance="subdued">
+                Total Earned
+              </Text>
+              <Text size="large" emphasis="bold">
+                {formatAmount(lifetime.earned)}
+              </Text>
+            </BlockStack>
+
+            <BlockStack spacing="tight">
+              <Text size="small" appearance="subdued">
+                Total Redeemed
+              </Text>
+              <Text size="large" emphasis="bold">
+                {formatAmount(lifetime.redeemed)}
+              </Text>
+            </BlockStack>
+          </InlineStack>
+
+          {lifetime.orderCount !== undefined && (
+            <BlockStack spacing="tight">
+              <Text size="small" appearance="subdued">
+                Orders Placed
+              </Text>
+              <Text size="medium" emphasis="bold">
+                {lifetime.orderCount} {lifetime.orderCount === 1 ? 'order' : 'orders'}
+              </Text>
+            </BlockStack>
+          )}
+        </BlockStack>
+      </Card>
+
+      {/* How It Works Card */}
+      <Card>
+        <BlockStack spacing="base">
+          <Heading level={2}>How It Works</Heading>
+
+          <BlockStack spacing="tight">
+            <Text size="small">
+              <Text emphasis="bold">1. Shop:</Text> Make purchases and earn {tier.cashbackRate}%
+              cashback on every order.
+            </Text>
+            <Text size="small">
+              <Text emphasis="bold">2. Earn:</Text> Cashback is automatically added to your
+              store credit balance.
+            </Text>
+            <Text size="small">
+              <Text emphasis="bold">3. Redeem:</Text> Use your store credit at checkout on
+              future purchases.
+            </Text>
+            <Text size="small">
+              <Text emphasis="bold">4. Level Up:</Text> Spend more to unlock higher tiers
+              with better rewards!
+            </Text>
+          </BlockStack>
+        </BlockStack>
+      </Card>
     </BlockStack>
   );
 }
