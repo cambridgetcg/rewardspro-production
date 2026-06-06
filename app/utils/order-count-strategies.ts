@@ -3,6 +3,7 @@
  * Multiple approaches to work around AWS Data API date filtering issues
  */
 
+import * as crypto from "node:crypto";
 import { db } from "../db.server";
 import { getAuroraClient } from "./aurora-data-api";
 import type { SqlParameter } from "@aws-sdk/client-rds-data";
@@ -361,6 +362,42 @@ export async function countOrdersWithFallback(
   return { count: 0, strategy: "none" };
 }
 
+/** Fields the billable-order predicate reads off a Shopify orders/create payload. */
+export interface BillableOrderInput {
+  test?: boolean | null;
+  cancelled_at?: string | null;
+}
+
+/**
+ * Billable-order predicate — the single source of truth for "does this order
+ * count toward the merchant's plan usage?". This is the heart of Honest
+ * Billing: merchants are never charged for orders that aren't real revenue.
+ *
+ * v1 rule: a TEST order is never billable. Everything else is billable.
+ *
+ * Deliberately NOT gated on:
+ *   - `financial_status` — orders/create fires BEFORE payment, so most
+ *     genuine orders are 'pending' at create time; gating on paid here would
+ *     massively UNDER-count real revenue.
+ *   - `cancelled_at` — skipping at create time would permanently drop the
+ *     order from the counter with no re-add path (orders/paid does not
+ *     increment). Cancellation is corrected reversibly via reconciliation,
+ *     not by a one-way create-time skip.
+ *
+ * A missing `test` field is treated as non-test (billable) so a payload that
+ * omits the field can never silently drop a legitimate order — the predicate
+ * is conservative in the merchant's favour: it only ever removes the
+ * unambiguous non-revenue case.
+ */
+export function isBillableOrderPayload(
+  order: BillableOrderInput
+): { billable: boolean; reason?: string } {
+  if (order.test === true) {
+    return { billable: false, reason: "test" };
+  }
+  return { billable: true };
+}
+
 /**
  * Increment monthly order count for real-time usage tracking
  * Called from orders.create webhook to track all orders
@@ -452,6 +489,3 @@ export async function incrementMonthlyOrderCount(
     // Don't throw - this is non-critical tracking that shouldn't fail webhooks
   }
 }
-
-// Helper for crypto
-import * as crypto from 'node:crypto';

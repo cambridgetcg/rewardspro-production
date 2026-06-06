@@ -168,6 +168,17 @@ export function getPlanOrderLimit(planName: string | null | undefined): number {
 }
 
 /**
+ * Merchant-facing transparency note for billing/usage surfaces.
+ *
+ * Single source of truth so every surface (billing page, plan card,
+ * dashboard) uses identical wording. This claim is literally enforced:
+ * test orders are excluded from plan-usage counting at the source — see
+ * `isBillableOrderPayload` in app/utils/order-count-strategies.ts.
+ */
+export const BILLING_TRANSPARENCY_NOTE =
+  "Test orders are never counted toward your plan.";
+
+/**
  * Plan comparison table - RATE-BASED MODEL
  * All plans have access to all features - differentiation is through LIMITS
  * This drives upgrade value by showing capacity differences

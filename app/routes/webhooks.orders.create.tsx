@@ -21,7 +21,7 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { v4 as uuidv4 } from 'uuid';
-import { incrementMonthlyOrderCount } from "~/utils/order-count-strategies";
+import { incrementMonthlyOrderCount, isBillableOrderPayload } from "~/utils/order-count-strategies";
 import { getPlanOrderLimit } from "~/constants/billing.constants";
 import { logSafeCustomer } from "~/utils/pii-masker";
 import { invalidateShopCache } from "~/utils/analytics-cache.server";
@@ -38,6 +38,8 @@ interface OrderWebhook {
   total_price: string;
   currency: string;
   financial_status: string;
+  test?: boolean;
+  cancelled_at?: string | null;
   customer: {
     id: number;
     email: string;
@@ -60,7 +62,7 @@ interface OrderWebhook {
 // ============================================================================
 
 export async function action({ request }: ActionFunctionArgs) {
-  const { topic, shop, session, admin, payload } = await authenticate.webhook(request);
+  const { topic, shop, admin, payload } = await authenticate.webhook(request);
   
   if (!admin) {
     console.error('[OrdersCreateWebhook] No admin API access');
@@ -95,24 +97,33 @@ export async function action({ request }: ActionFunctionArgs) {
       }
     }
 
-    // Increment monthly order count for ALL orders (including guest orders)
-    try {
-      // Fetch the shop's current subscription to get the correct plan limit
-      const subscription = await prisma.appSubscription.findUnique({
-        where: { shop },
-        select: { planName: true }
-      });
+    // Honest Billing: test orders are never counted toward the merchant's
+    // plan usage. Cancellation is corrected reversibly via reconciliation, NOT
+    // by a create-time skip (orders/paid does not increment, so skipping here
+    // would permanently drop a later-confirmed order). See isBillableOrderPayload.
+    const billable = isBillableOrderPayload(order);
+    if (!billable.billable) {
+      console.log(`[OrdersCreateWebhook] Order ${order.id} is a ${billable.reason} order — not counted toward plan usage`);
+    } else {
+      // Increment monthly order count for all billable orders (including guest orders)
+      try {
+        // Fetch the shop's current subscription to get the correct plan limit
+        const subscription = await prisma.appSubscription.findUnique({
+          where: { shop },
+          select: { planName: true }
+        });
 
-      const planLimit = getPlanOrderLimit(subscription?.planName);
-      const planName = subscription?.planName || "RewardsPro Free";
+        const planLimit = getPlanOrderLimit(subscription?.planName);
+        const planName = subscription?.planName || "RewardsPro Free";
 
-      console.log(`[OrdersCreateWebhook] Using plan limit for ${shop}:`, { planName, planLimit });
+        console.log(`[OrdersCreateWebhook] Using plan limit for ${shop}:`, { planName, planLimit });
 
-      await incrementMonthlyOrderCount(shop, order.created_at, planLimit, planName);
-      console.log(`[OrdersCreateWebhook] ✅ Monthly order count incremented for ${shop}`);
-    } catch (error) {
-      console.error(`[OrdersCreateWebhook] ⚠️ Failed to increment monthly count (non-critical):`, error);
-      // Continue - this is just usage tracking, don't fail the webhook
+        await incrementMonthlyOrderCount(shop, order.created_at, planLimit, planName);
+        console.log(`[OrdersCreateWebhook] ✅ Monthly order count incremented for ${shop}`);
+      } catch (error) {
+        console.error(`[OrdersCreateWebhook] ⚠️ Failed to increment monthly count (non-critical):`, error);
+        // Continue - this is just usage tracking, don't fail the webhook
+      }
     }
 
     // Skip customer credit sync if no customer (guest checkout)

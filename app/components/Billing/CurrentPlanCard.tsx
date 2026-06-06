@@ -11,7 +11,7 @@ import {
 import {
   getPlanDetails,
   calculateUsageMetrics,
-  type ManagedPlan
+  BILLING_TRANSPARENCY_NOTE
 } from "~/constants/billing.constants";
 import { PlanOverLimitBanner } from "./PlanOverLimitBanner";
 import { PlanUsageProgress } from "./PlanUsageProgress";
@@ -250,6 +250,11 @@ export function CurrentPlanCard({
                       </Text>
                     </BlockStack>
                   </InlineStack>
+                  <Box paddingBlockStart="200">
+                    <Text as="span" variant="bodySm" tone="subdued">
+                      {BILLING_TRANSPARENCY_NOTE}
+                    </Text>
+                  </Box>
                 </Box>
               )}
 
