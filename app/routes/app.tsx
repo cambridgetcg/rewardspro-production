@@ -269,7 +269,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function App() {
-  const { apiKey, shop, host, features, ga4MeasurementId } = useLoaderData<typeof loader>();
+  const { apiKey, ga4MeasurementId } = useLoaderData<typeof loader>();
 
   if (!apiKey) {
     console.error("[App Component] No API key available!");
@@ -296,6 +296,7 @@ export default function App() {
           <Link to="/app/rewards">Rewards</Link>
           <Link to="/app/marketing">Marketing</Link>
           <Link to="/app/analytics">Analytics</Link>
+          <Link to="/app/loyalty-impact">Loyalty Impact</Link>
           <Link to="/app/orders">Orders</Link>
           <Link to="/app/settings">Settings</Link>
         </NavMenu>
