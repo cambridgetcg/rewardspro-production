@@ -4,6 +4,9 @@ import { useLoaderData, useNavigate, useFetcher, useRouteError, isRouteErrorResp
 import { useState, useCallback, useEffect } from "react";
 import { useAnalytics } from "~/hooks/useAnalytics";
 import { useToast } from "~/hooks/useToast";
+import { SetupChecklist } from "~/components/SetupChecklist";
+import { getSetupChecklist } from "~/services/onboarding";
+import type { SetupChecklist as SetupChecklistData } from "~/services/onboarding";
 
 import {
   Page,
@@ -14,7 +17,6 @@ import {
   InlineStack,
   InlineGrid,
   Icon,
-  Box,
   Badge,
   Toast,
   Frame,
@@ -28,9 +30,7 @@ import {
   ChartVerticalIcon,
   CashDollarIcon,
   DatabaseIcon,
-  RefreshIcon,
   CheckCircleIcon,
-  CreditCardIcon,
 } from "~/utils/polaris-icons";
 import { authenticate, FREE_PLAN, PRO_PLAN, PRO_ANNUAL_PLAN, MAX_PLAN, MAX_ANNUAL_PLAN, ULTRA_PLAN, ULTRA_ANNUAL_PLAN, STARTER_PLAN, GROWTH_PLAN, ENTERPRISE_PLAN } from "../shopify.server";
 import prisma from "../db.server";
@@ -63,7 +63,7 @@ const calculateProjectedOrders = (currentOrders: number, daysRemaining: number):
   return Math.ceil(dailyRate * totalDaysInMonth);
 };
 
-const formatTimeAgo = (dateString: string | null): string => {
+const _formatTimeAgo = (dateString: string | null): string => {
   if (!dateString) return 'Never';
 
   const date = new Date(dateString);
@@ -87,6 +87,7 @@ const formatTimeAgo = (dateString: string | null): string => {
 
 interface DashboardData {
   shop: string;
+  setupChecklist?: SetupChecklistData | null;
   shopSettings: {
     storeCurrency?: string;
     tierRecalculationEnabled?: boolean;
@@ -534,7 +535,16 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     const loaderEnd = Date.now();
     const totalTime = loaderEnd - loaderStart;
     console.log(`[Dashboard] ⚡ Simplified loader execution time: ${totalTime}ms`);
-    return json(dashboardData);
+    // Getting-Started checklist — read defensively so a failure here can
+    // never break the dashboard load.
+    let setupChecklist: SetupChecklistData | null = null;
+    try {
+      setupChecklist = await getSetupChecklist(shop);
+    } catch (checklistError) {
+      console.error("[Dashboard] setup checklist read failed (non-fatal):", checklistError);
+    }
+
+    return json({ ...dashboardData, setupChecklist });
   } catch (error) {
     if (error instanceof Response) {
       throw error;
@@ -613,7 +623,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 // ============================================
 
 export function shouldRevalidate({
-  formAction,
   formData,
   defaultShouldRevalidate,
 }: {
@@ -841,6 +850,13 @@ export default function Dashboard() {
                 </Text>
               )}
             </Banner>
+          </Layout.Section>
+        )}
+
+        {/* Getting-Started checklist — disappears once setup is complete */}
+        {data.setupChecklist && (
+          <Layout.Section>
+            <SetupChecklist checklist={data.setupChecklist} />
           </Layout.Section>
         )}
 
