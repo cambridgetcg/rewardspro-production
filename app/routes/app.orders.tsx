@@ -26,7 +26,6 @@ import {
   Toast,
   Frame,
   DescriptionList,
-  ButtonGroup,
   ProgressBar,
   useIndexResourceState,
 } from "@shopify/polaris";
@@ -2062,17 +2061,16 @@ export default function OrdersPage() {
           {getFinancialStatusBadge(order.financialStatus)}
           {getCashbackStatusBadge(order)}
           {order.cashbackAmount && !order.cashbackProcessed && (
-            <Button
-              size="slim"
-              variant="primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleProcessCashback(order.id);
-              }}
-              loading={navigation.state === "submitting"}
-            >
-              Process
-            </Button>
+            <div onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="slim"
+                variant="primary"
+                onClick={() => handleProcessCashback(order.id)}
+                loading={navigation.state === "submitting"}
+              >
+                Process
+              </Button>
+            </div>
           )}
         </InlineStack>
       </IndexTable.Cell>

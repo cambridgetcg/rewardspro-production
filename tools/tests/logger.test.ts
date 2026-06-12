@@ -2,7 +2,7 @@
  * Logger Utilities Tests
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import {
   Logger,
   createLogger,
@@ -15,8 +15,10 @@ import {
 // ============================================================================
 
 describe('Logger', () => {
-  let stdoutSpy: ReturnType<typeof vi.spyOn>;
-  let stderrSpy: ReturnType<typeof vi.spyOn>;
+  // process.stdout/stderr.write are overloaded; the precise MockInstance type
+  // isn't assignable to the default vi.spyOn return, so widen the spy handles.
+  let stdoutSpy: MockInstance;
+  let stderrSpy: MockInstance;
 
   beforeEach(() => {
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
