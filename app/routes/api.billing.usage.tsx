@@ -3,6 +3,7 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { v4 as uuidv4 } from "uuid";
+import { sendEmail } from "~/services/sendgrid.server";
 
 /**
  * Get the currency for a shop from shop settings
@@ -206,9 +207,71 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 /**
+ * Send a usage warning email to the merchant when they cross 80% or 90% of their plan cap.
+ * Best-effort: logs on failure, never throws.
+ */
+async function sendUsageWarningEmail(
+  shop: string,
+  subscription: { name?: string | null },
+  used: number,
+  cap: number,
+  percentage: number,
+): Promise<void> {
+  try {
+    const ownerSession = await prisma.session.findFirst({
+      where: { shop, accountOwner: true },
+      orderBy: { expires: "desc" },
+      select: { email: true, firstName: true },
+    });
+
+    if (!ownerSession?.email) {
+      console.log(`[Usage Billing] No owner email for ${shop} — skipping email`);
+      return;
+    }
+
+    const name = ownerSession.firstName || "there";
+    const remaining = Math.max(0, cap - used);
+    const isUrgent = percentage >= 90;
+    const subject = isUrgent
+      ? `🚨 RewardsPro: ${percentage.toFixed(0)}% of plan usage reached`
+      : `⚠️ RewardsPro: ${percentage.toFixed(0)}% of plan usage reached`;
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+        <h2 style="color: ${isUrgent ? "#d32f2f" : "#f57c00"};">${isUrgent ? "Almost at your cap" : "Heads up"}, ${name}</h2>
+        <p>Your RewardsPro plan has used <strong>${percentage.toFixed(1)}%</strong> of its monthly capacity.</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;">Used</td><td style="padding: 8px; border: 1px solid #ddd;">$${used.toFixed(2)}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;">Cap</td><td style="padding: 8px; border: 1px solid #ddd;">$${cap.toFixed(2)}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;">Remaining</td><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold; color: ${isUrgent ? "#d32f2f" : "#f57c00"};">$${remaining.toFixed(2)}</td></tr>
+        </table>
+        <p style="margin-top: 24px;">
+          <a href="https://admin.shopify.com/apps/rewards-pro/app/billing" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Manage billing</a>
+        </p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+        <p style="font-size: 12px; color: #999;">RewardsPro — automated usage alert</p>
+      </div>
+    `;
+
+    await sendEmail(shop, {
+      to: { email: ownerSession.email, name },
+      subject,
+      html,
+      text: `RewardsPro: ${percentage.toFixed(1)}% of plan cap used. $${remaining.toFixed(2)} remaining. Manage at https://admin.shopify.com/apps/rewards-pro/app/billing`,
+      categories: ["billing", "usage-check", isUrgent ? "urgent" : "notice"],
+      customArgs: { shop, event: "usage_check" },
+    });
+
+    console.log(`[Usage Billing] Warning email sent to ${shop} at ${percentage.toFixed(1)}%`);
+  } catch (err) {
+    console.error(`[Usage Billing] Failed to send warning email to ${shop}:`, err);
+  }
+}
+
+/**
  * Check if merchant is approaching usage caps and send notifications
  */
-async function checkUsageCaps(shop: string, billing: any) {
+async function checkUsageCaps(shop: string, _billing: any) {
   try {
     // Calculate current month's usage
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -251,7 +314,8 @@ async function checkUsageCaps(shop: string, billing: any) {
           },
         }).catch(err => console.error("[Usage Billing] Failed to update balance:", err));
 
-        // TODO: Send email notification or in-app alert (90% threshold)
+        // Send email notification at 90% threshold
+        await sendUsageWarningEmail(shop, billingSubscription, totalUsage, capAmount, usagePercentage);
       } else if (usagePercentage >= 80) {
         console.log(`[Usage Billing] ${shop} at ${usagePercentage.toFixed(1)}% of usage cap`);
 
@@ -265,7 +329,8 @@ async function checkUsageCaps(shop: string, billing: any) {
           },
         }).catch(err => console.error("[Usage Billing] Failed to update balance:", err));
 
-        // TODO: Send email notification or in-app alert (80% threshold)
+        // Send email notification at 80% threshold
+        await sendUsageWarningEmail(shop, billingSubscription, totalUsage, capAmount, usagePercentage);
       }
     }
   } catch (error) {

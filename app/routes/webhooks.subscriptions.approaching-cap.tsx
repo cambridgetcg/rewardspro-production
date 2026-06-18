@@ -2,6 +2,7 @@ import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import * as crypto from "node:crypto";
 import prisma from "../db.server";
+import { sendEmail } from "~/services/sendgrid.server";
 
 /**
  * Webhook handler for APP_SUBSCRIPTIONS_APPROACHING_CAPPED_AMOUNT
@@ -203,16 +204,68 @@ export async function action({ request }: ActionFunctionArgs) {
       // Continue processing
     }
 
-    // 10. TODO: Send email notification to merchant
-    // This should be implemented based on merchant's email settings
-    // For now, we're logging the alert and creating in-app notifications
+    // 10. Send email notification to merchant
+    try {
+      // Find the shop owner's email from the most recent session
+      const ownerSession = await prisma.session.findFirst({
+        where: { shop: shopDomain, accountOwner: true },
+        orderBy: { expires: "desc" },
+        select: { email: true, firstName: true, lastName: true },
+      });
+
+      if (ownerSession?.email) {
+        const merchantName = ownerSession.firstName || "there";
+        const isUrgent = usagePercentage >= 95;
+        const subject = isUrgent
+          ? `🚨 Your RewardsPro plan is almost at capacity (${usagePercentage.toFixed(0)}%)`
+          : `⚠️ Your RewardsPro plan is approaching its cap (${usagePercentage.toFixed(0)}%)`;
+
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+            <h2 style="color: ${isUrgent ? "#d32f2f" : "#f57c00"};">${isUrgent ? "Urgent" : "Heads up"}, ${merchantName}</h2>
+            <p>Your RewardsPro subscription (${subscription.name}) is at <strong>${usagePercentage.toFixed(1)}%</strong> of its monthly cap.</p>
+            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+              <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;">Plan</td><td style="padding: 8px; border: 1px solid #ddd;">${subscription.name}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;">Used</td><td style="padding: 8px; border: 1px solid #ddd;">$${balanceUsed.toFixed(2)}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;">Cap</td><td style="padding: 8px; border: 1px solid #ddd;">$${cappedAmount.toFixed(2)}</td></tr>
+              <tr><td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;">Remaining</td><td style="padding: 8px; border: 1px solid #ddd; color: ${isUrgent ? "#d32f2f" : "#f57c00"}; font-weight: bold;">$${balanceRemaining.toFixed(2)}</td></tr>
+            </table>
+            ${isUrgent
+              ? `<p style="color: #d32f2f; font-weight: bold;">You have less than 5% of your plan's capacity remaining. Some features may pause soon if the cap is reached.</p>`
+              : `<p>You still have some room, but consider upgrading soon to avoid interruptions.</p>`
+            }
+            <p style="margin-top: 24px;">
+              <a href="https://admin.shopify.com/apps/rewards-pro/app/billing" style="display: inline-block; background: #008060; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">View billing &amp; upgrade</a>
+            </p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+            <p style="font-size: 12px; color: #999;">RewardsPro — loyalty rewards for Shopify. This is an automated message about your subscription usage.</p>
+          </div>
+        `;
+
+        await sendEmail(shopDomain, {
+          to: { email: ownerSession.email, name: merchantName },
+          subject,
+          html,
+          text: `${isUrgent ? "URGENT" : "Notice"}: Your RewardsPro plan (${subscription.name}) is at ${usagePercentage.toFixed(1)}% of its cap. $${balanceRemaining.toFixed(2)} remaining. View billing at https://admin.shopify.com/apps/rewards-pro/app/billing`,
+          categories: ["billing", "usage-warning", isUrgent ? "urgent" : "notice"],
+          customArgs: { shop: shopDomain, event: "approaching_cap" },
+        });
+
+        console.log(`[APPROACHING_CAP] Email sent to merchant for ${shopDomain}`);
+      } else {
+        console.log(`[APPROACHING_CAP] No owner email found for ${shopDomain} — in-app notification only`);
+      }
+    } catch (emailError) {
+      console.error(`[APPROACHING_CAP] Failed to send merchant email for ${shopDomain}:`, emailError);
+      // Don't fail the webhook — the in-app notification already landed
+    }
 
     if (usagePercentage >= 95) {
       console.warn(
         `[APPROACHING_CAP] 🚨 URGENT: Shop ${shopDomain} needs immediate attention! ` +
         `Only $${balanceRemaining.toFixed(2)} remaining of $${cappedAmount.toFixed(2)} cap.`
       );
-      // TODO: Send urgent email notification
+      // Email already sent above with isUrgent styling; this is the additional log line.
       // TODO: Consider auto-pausing usage-based features
     }
 
