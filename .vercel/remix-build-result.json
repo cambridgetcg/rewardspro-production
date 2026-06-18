@@ -1619,9 +1619,9 @@
     }
   },
   "remixConfig": {
-    "appDirectory": "/Users/you/Desktop/rewardspro-production/app",
+    "appDirectory": "/Users/yu/github/cambridgetcg/rewardspro-production/app",
     "basename": "/",
-    "buildDirectory": "/Users/you/Desktop/rewardspro-production/build",
+    "buildDirectory": "/Users/yu/github/cambridgetcg/rewardspro-production/build",
     "future": {
       "v3_fetcherPersist": true,
       "v3_relativeSplatPath": true,

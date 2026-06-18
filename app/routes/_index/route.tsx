@@ -46,17 +46,17 @@ function normalizeShopDomain(value: string): string {
 
 const valueProps = [
   {
-    emoji: "🔁",
+    icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
     title: "Bring customers back",
     text: "A store-credit balance is a standing reason to return — customers come back to spend what they have waiting.",
   },
   {
-    emoji: "📈",
+    icon: "M3 17l6-6 4 4 8-8M14 7h7v7",
     title: "Grow order value",
     text: "Tiers reward bigger spenders with higher cashback, giving shoppers a reason to reach their next level.",
   },
   {
-    emoji: "⚙️",
+    icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
     title: "Run on autopilot",
     text: "Cashback is calculated and issued automatically on every paid order. Configure your tiers once and you're done.",
   },
@@ -67,19 +67,19 @@ const steps = [
     when: "On every order",
     title: "Customer earns cashback",
     text: "Each paid order earns cashback at the customer's tier rate, issued automatically as Shopify store credit.",
-    emoji: "🧾",
+    icon: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
   },
   {
     when: "Between visits",
     title: "Their balance grows",
     text: "Store credit waits in their account, ready to apply at checkout — a reason to come back and buy again.",
-    emoji: "💳",
+    icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
   },
   {
     when: "Next purchase",
     title: "They reorder",
     text: "Spending their credit makes the next order an easy yes, lifting repeat-purchase rate over time.",
-    emoji: "🛍️",
+    icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z",
   },
 ];
 
@@ -324,8 +324,10 @@ export default function LandingPage() {
           <div className="lp-grid lp-grid--3">
             {valueProps.map((v) => (
               <div key={v.title} className="lp-card lp-value">
-                <div className="lp-icon" aria-hidden="true" style={{ fontSize: "1.5rem" }}>
-                  {v.emoji}
+                <div className="lp-icon" aria-hidden="true">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={v.icon} />
+                  </svg>
                 </div>
                 <h3 className="lp-card-title">{v.title}</h3>
                 <p className="lp-card-text">{v.text}</p>
@@ -346,8 +348,10 @@ export default function LandingPage() {
             {steps.map((step, i) => (
               <div key={step.title} className="lp-step">
                 <div className="lp-step-num">{i + 1}</div>
-                <div aria-hidden="true" style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>
-                  {step.emoji}
+                <div className="lp-icon" aria-hidden="true" style={{ width: 36, height: 36, marginBottom: 12 }}>
+                  <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={step.icon} />
+                  </svg>
                 </div>
                 <p className="lp-step-when">{step.when}</p>
                 <h3 className="lp-step-title">{step.title}</h3>
