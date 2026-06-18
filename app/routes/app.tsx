@@ -296,7 +296,6 @@ export default function App() {
           <Link to="/app/rewards">Rewards</Link>
           <Link to="/app/marketing">Marketing</Link>
           <Link to="/app/analytics">Analytics</Link>
-          <Link to="/app/loyalty-impact">Loyalty Impact</Link>
           <Link to="/app/orders">Orders</Link>
           <Link to="/app/settings">Settings</Link>
         </NavMenu>

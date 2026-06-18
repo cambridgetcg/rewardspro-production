@@ -816,40 +816,39 @@ export default function Dashboard() {
     <Frame>
       <Page title="Dashboard">
       <Layout>
-        {/* Review Banner — compact */}
-        {reviewBannerVisible && (
+        {/* Review Banner — subtle, only for idle state */}
+        {reviewBannerVisible && reviewBannerState === 'idle' && (
+          <Layout.Section>
+            <Banner
+              title="Enjoying Rewards Pro? Get 3 months of Pro free."
+              tone="info"
+              action={{ content: '⭐ Leave a Review', onAction: handleLeaveReview }}
+              secondaryAction={{ content: 'Maybe later', onAction: handleDismissReviewBanner }}
+              onDismiss={handleDismissReviewBanner}
+            >
+              <Text as="p" variant="bodySm">
+                Share your experience on the Shopify App Store and we'll upgrade you for free.
+              </Text>
+            </Banner>
+          </Layout.Section>
+        )}
+
+        {/* Claimed/leaving states — compact, no extra copy */}
+        {reviewBannerVisible && reviewBannerState !== 'idle' && (
           <Layout.Section>
             <Banner
               title={
                 reviewBannerState === 'claimed'
                   ? 'Thank you! Setting up 3 months of Pro…'
-                  : reviewBannerState === 'leaving'
-                    ? 'Done writing your review?'
-                    : 'Enjoying Rewards Pro? Get 3 months of Pro free.'
+                  : 'Done writing your review?'
               }
               tone="info"
               action={
-                reviewBannerState === 'claimed'
-                  ? undefined
-                  : reviewBannerState === 'leaving'
-                    ? { content: "I've left my review", onAction: handleReviewClaimed }
-                    : { content: '⭐ Leave a Review', onAction: handleLeaveReview }
+                reviewBannerState === 'leaving'
+                  ? { content: "I've left my review", onAction: handleReviewClaimed }
+                  : undefined
               }
-              secondaryAction={
-                reviewBannerState === 'idle'
-                  ? { content: 'Maybe later', onAction: handleDismissReviewBanner }
-                  : reviewBannerState === 'leaving'
-                    ? { content: 'Not yet', onAction: handleDismissReviewBanner }
-                    : undefined
-              }
-              onDismiss={reviewBannerState !== 'claimed' ? handleDismissReviewBanner : undefined}
-            >
-              {reviewBannerState === 'idle' && (
-                <Text as="p" variant="bodySm">
-                  Share your experience on the Shopify App Store and we'll upgrade you for free.
-                </Text>
-              )}
-            </Banner>
+            />
           </Layout.Section>
         )}
 

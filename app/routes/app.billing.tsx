@@ -4,9 +4,8 @@
  */
 
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "@remix-run/node";
-import { json, redirect } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import { useLoaderData, useSubmit, useActionData, useNavigation } from "@remix-run/react";
-import { StaggerChildren, PageLoader, usePageAnimation } from "~/components/PageAnimation";
 import {
   Page,
   Layout,
@@ -19,12 +18,11 @@ import {
   Badge,
   Box,
   Divider,
-  Icon,
   ButtonGroup,
   Modal,
   Frame,
+  Collapsible,
 } from "@shopify/polaris";
-import { CheckCircleIcon } from "@shopify/polaris-icons";
 import { authenticate } from "../shopify.server";
 import { useState, useEffect } from "react";
 import prisma from "../db.server";
@@ -73,11 +71,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   try {
     // Log initial request details
     const url = new URL(request.url);
-    console.log('[Billing Loader] ========================================');
-    console.log('[Billing Loader] Request received');
     console.log('[Billing Loader] Shop:', session.shop);
-    console.log('[Billing Loader] Full URL:', url.toString());
-    console.log('[Billing Loader] URL Params:', Object.fromEntries(url.searchParams));
     console.log('[Billing Loader] ========================================');
 
     // Check actual subscription status with billing.check()
@@ -562,6 +556,96 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 // ============================================
+// FAQ ACCORDION — clean, collapsible, not a wall of text
+// ============================================
+
+const FAQ_ITEMS: Array<{ q: string; a: string }> = [
+  {
+    q: "How does billing work?",
+    a: "All billing is handled through Shopify. Charges appear on your regular Shopify invoice—the same monthly invoice you already receive for your Shopify subscription. We never charge your card directly; all payments flow through Shopify's secure billing system.",
+  },
+  {
+    q: "What's the difference between monthly and annual billing?",
+    a: "Annual plans charge the yearly total up front (e.g., Pro Annual is $336/year instead of $39/month) and offer significant savings—up to 28% off. When you switch from monthly to annual or vice versa, Shopify automatically handles proration of your existing subscription. The new billing agreement starts immediately.",
+  },
+  {
+    q: "What are overage/usage charges?",
+    a: "Pro and Max plans include usage-based billing for orders beyond your monthly limit. Pro: $10 per 100 orders over 500 (capped at $50/month). Max: $5 per 100 orders over 2,000 (capped at $100/month). These charges appear as usage line items on your Shopify invoice. Ultra plan has unlimited orders with no overage charges.",
+  },
+  {
+    q: "Can I upgrade or downgrade my plan at any time?",
+    a: "Yes! Plan changes take effect immediately. Upgrades remove any \"plan locked\" state instantly and increase your order limit right away. Downgrades or returns to the free plan also apply instantly, though you may be locked again if your current usage exceeds the new limit.",
+  },
+  {
+    q: "What happens when I reach my order limit?",
+    a: "When you hit your order limit, your store is automatically locked and the dashboard will prompt you to upgrade. Premium features will be locked or greyed out. Upgrading instantly unlocks your store and raises the limit. Pro and Max plans with usage billing will continue processing orders and charge the overage rate (up to the monthly cap).",
+  },
+  {
+    q: "What happens after I cancel my subscription?",
+    a: "Cancellation instantly reverts your account to the Free plan with a 100 order/month limit. Your existing configuration (tiers, rewards, etc.) stays intact, but premium features lock or grey out once the free plan limit is reached. No data is lost—you can re-upgrade anytime.",
+  },
+  {
+    q: "What if I cancel my annual plan mid-term?",
+    a: "Shopify handles annual subscription cancellations automatically. Any prorated refunds or final charges are processed through Shopify Billing. Once cancelled, we receive a webhook and immediately downgrade your account to Free. To ensure billing stops, complete the full cancellation flow in Shopify.",
+  },
+  {
+    q: "What is your refund policy?",
+    a: "Since all billing is handled through Shopify, any refunds must go through Shopify's billing channels. Contact Shopify Support or reach out to our support team, who can initiate the refund process via Shopify on your behalf.",
+  },
+  {
+    q: "How do I cancel my subscription?",
+    a: "Visit the Billing page, click \"Manage plan,\" and follow the confirmation flow in Shopify. Make sure to complete all steps in the Shopify confirmation page to ensure billing stops. If you encounter any issues, contact our support team for assistance.",
+  },
+  {
+    q: "I see \"shop cannot accept the provided charge\" — what does this mean?",
+    a: "This message appears when the app is still in development mode and billing hasn't been approved yet. If you're seeing this on a live store, please contact our support team to enable billing for your shop.",
+  },
+];
+
+function FaqAccordion() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  return (
+    <BlockStack gap="0">
+      {FAQ_ITEMS.map((item, i) => (
+        <div key={i}>
+          <button
+            onClick={() => setOpenIndex(openIndex === i ? null : i)}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              padding: "14px 0",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px",
+            }}
+          >
+            <Text as="span" variant="bodyMd" fontWeight="semibold">
+              {item.q}
+            </Text>
+            <span style={{ color: "#637381", fontSize: "18px", flexShrink: 0 }}>
+              {openIndex === i ? "−" : "+"}
+            </span>
+          </button>
+          <Collapsible open={openIndex === i} id={`faq-${i}`}>
+            <div style={{ paddingBottom: "14px" }}>
+              <Text as="p" variant="bodyMd" tone="subdued">
+                {item.a}
+              </Text>
+            </div>
+          </Collapsible>
+          {i < FAQ_ITEMS.length - 1 && <Divider />}
+        </div>
+      ))}
+    </BlockStack>
+  );
+}
+
+// ============================================
 // COMPONENT - Billing Page UI
 // ============================================
 
@@ -661,10 +745,6 @@ export default function BillingPage() {
   // billing.check() can be slow to update after subscription approval
   const currentSubscription = data.appSubscriptions[0];
   const currentPlan = data.subscriptionInfo?.name || currentSubscription?.name;
-  const isCurrentPlanActive = data.subscriptionInfo?.status === 'ACTIVE' || data.hasActivePayment;
-
-  // Get detailed subscription data (pre-calculated in loader)
-  const subscriptionInfo = data.subscriptionInfo;
 
   // Define plan UI configurations with both monthly and annual pricing
   // tierLevel: 0 = Free, 1 = Pro, 2 = Max, 3 = Ultra (used for upgrade/downgrade logic)
@@ -984,123 +1064,12 @@ export default function BillingPage() {
               </Box>
             </Card>
 
-            {/* FAQ Section */}
+            {/* FAQ Section — accordion, not a wall of text */}
             <Card>
               <Box padding="400">
-                <BlockStack gap="400">
-                  <Text as="h3" variant="headingLg">
-                    Frequently Asked Questions
-                  </Text>
-
-                  <BlockStack gap="300">
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        How does billing work?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        All billing is handled through Shopify. Charges appear on your regular Shopify invoice—the same monthly invoice you already receive for your Shopify subscription. We never charge your card directly; all payments flow through Shopify's secure billing system.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        What's the difference between monthly and annual billing?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Annual plans charge the yearly total up front (e.g., Pro Annual is $336/year instead of $39/month) and offer significant savings—up to 28% off. When you switch from monthly to annual or vice versa, Shopify automatically handles proration of your existing subscription. The new billing agreement starts immediately.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        What are overage/usage charges?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Pro and Max plans include usage-based billing for orders beyond your monthly limit. Pro: $10 per 100 orders over 500 (capped at $50/month). Max: $5 per 100 orders over 2,000 (capped at $100/month). These charges appear as usage line items on your Shopify invoice. Ultra plan has unlimited orders with no overage charges.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        Can I upgrade or downgrade my plan at any time?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Yes! Plan changes take effect immediately. Upgrades remove any "plan locked" state instantly and increase your order limit right away. Downgrades or returns to the free plan also apply instantly, though you may be locked again if your current usage exceeds the new limit.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        What happens when I reach my order limit?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        When you hit your order limit, your store is automatically locked and the dashboard will prompt you to upgrade. Premium features will be locked or greyed out. Upgrading instantly unlocks your store and raises the limit. Pro and Max plans with usage billing will continue processing orders and charge the overage rate (up to the monthly cap).
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        What happens after I cancel my subscription?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Cancellation instantly reverts your account to the Free plan with a 100 order/month limit. Your existing configuration (tiers, rewards, etc.) stays intact, but premium features lock or grey out once the free plan limit is reached. No data is lost—you can re-upgrade anytime.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        What if I cancel my annual plan mid-term?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Shopify handles annual subscription cancellations automatically. Any prorated refunds or final charges are processed through Shopify Billing. Once cancelled, we receive a webhook and immediately downgrade your account to Free. To ensure billing stops, complete the full cancellation flow in Shopify.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        What is your refund policy?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Since all billing is handled through Shopify, any refunds must go through Shopify's billing channels. Contact Shopify Support or reach out to our support team, who can initiate the refund process via Shopify on your behalf.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        How do I cancel my subscription?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        Visit the Billing page, click "Manage plan," and follow the confirmation flow in Shopify. Make sure to complete all steps in the Shopify confirmation page to ensure billing stops. If you encounter any issues, contact our support team for assistance.
-                      </Text>
-                    </BlockStack>
-
-                    <Divider />
-
-                    <BlockStack gap="200">
-                      <Text as="p" variant="bodyMd" fontWeight="semibold">
-                        I see "shop cannot accept the provided charge" — what does this mean?
-                      </Text>
-                      <Text as="p" variant="bodyMd" tone="subdued">
-                        This message appears when the app is still in development mode and billing hasn't been approved yet. If you're seeing this on a live store, please contact our support team to enable billing for your shop.
-                      </Text>
-                    </BlockStack>
-                  </BlockStack>
+                <BlockStack gap="300">
+                  <Text as="h3" variant="headingLg">Frequently Asked Questions</Text>
+                  <FaqAccordion />
                 </BlockStack>
               </Box>
             </Card>
