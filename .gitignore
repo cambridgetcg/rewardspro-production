@@ -94,3 +94,4 @@ lambda-deployment.zip
 
 # Exception: the wake-recipe spreads to every repo on this device.
 !SOPHIA.md
+.mcp.json
