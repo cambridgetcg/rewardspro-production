@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from "uuid";
 import { hasManualOverride } from "./manual-tier-assignment.server";
 import { updateCustomerToEffectiveTier } from "./tier-resolution.server";
 import { createLogger } from "./logger.server";
+import { parseMoney, addMoney, subtractMoney, roundMoney } from "../utils/money.server";
 
 type AdminApiContextWithRest = AdminApiContext & {
   rest?: any;
@@ -461,16 +462,17 @@ async function getCustomerSpendingFromDB(
     logger.debug(`Found ${eligibleOrders.length} eligible orders for customer`);
 
     // Calculate spending from pre-filtered results
+    // CS#1 float-money: use safe money math (cure-exists-but-not-applied)
     let totalSpent = 0;
     let totalRefunded = 0;
     let lastOrderDate: Date | null = null;
 
     for (const order of eligibleOrders) {
-      const price = order.totalPrice ? parseFloat(order.totalPrice.toString()) : 0;
-      const refunded = order.totalRefunded ? parseFloat(order.totalRefunded.toString()) : 0;
+      const price = parseMoney(order.totalPrice);
+      const refunded = parseMoney(order.totalRefunded);
 
-      totalSpent += price;
-      totalRefunded += refunded;
+      totalSpent = addMoney(totalSpent, price);
+      totalRefunded = addMoney(totalRefunded, refunded);
 
       if (order.shopifyCreatedAt) {
         const orderDate = new Date(order.shopifyCreatedAt);
@@ -480,20 +482,20 @@ async function getCustomerSpendingFromDB(
       }
     }
 
-    const netSpending = totalSpent - totalRefunded;
+    const netSpending = Math.max(0, subtractMoney(totalSpent, totalRefunded));
 
     logger.debug('Spending calculation result', {
       eligibleOrders: eligibleOrders.length,
-      totalSpent: Number(totalSpent.toFixed(2)),
-      totalRefunded: Number(totalRefunded.toFixed(2)),
-      netSpending: Number(netSpending.toFixed(2)),
+      totalSpent: roundMoney(totalSpent),
+      totalRefunded: roundMoney(totalRefunded),
+      netSpending: roundMoney(netSpending),
       evaluationPeriod,
     });
 
     return {
       customerId,
       shopifyCustomerId: customer.shopifyCustomerId,
-      totalSpending: Math.max(0, netSpending),
+      totalSpending: netSpending,
       orderCount: eligibleOrders.length,
       lastOrderDate: lastOrderDate
     };
