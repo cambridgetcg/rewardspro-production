@@ -30,6 +30,7 @@
  */
 
 import { db } from "~/db.server";
+import { parseMoney, divideMoney } from "~/utils/money.server";
 
 // ============================================================================
 // Types - Risk Assessment
@@ -234,8 +235,8 @@ async function extractCustomerFeatures(
     : 365; // Default to 1 year if no orders
 
   // Calculate average order value
-  const totalSpent = Number(customer.totalSpent) || 0;
-  const averageOrderValue = orders.length > 0 ? totalSpent / orders.length : 0;
+  const totalSpent = parseMoney(customer.totalSpent);
+  const averageOrderValue = orders.length > 0 ? divideMoney(totalSpent, orders.length) : 0;
 
   return {
     daysSinceLastOrder,

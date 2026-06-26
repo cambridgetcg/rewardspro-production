@@ -34,6 +34,7 @@ import {
   StarIcon,
 } from '@shopify/polaris-icons';
 import { formatCurrency } from '../utils/currency';
+import { sumMoney, parseMoney, roundMoney, formatCurrency as formatMoneySafe } from '../utils/money';
 import { StoreCreditTab } from './StoreCredit';
 import { PointsTab } from './Points';
 import { CustomerHeroStats } from './CustomerDetails/CustomerHeroStats';
@@ -269,7 +270,7 @@ export function CustomerDetailModal({
     if (details?.shopSettings) {
       return formatCurrency(amount, details.shopSettings as any);
     }
-    return `$${parseFloat(amount.toString()).toFixed(2)}`;
+    return formatMoneySafe(roundMoney(parseMoney(amount)), 'USD');
   };
 
   const formatDateShort = (dateString: string) => {
@@ -296,8 +297,10 @@ export function CustomerDetailModal({
   };
 
   // Helper function for tier progress - calculates total spending from orders
+  // Uses safe money functions to prevent floating-point accumulation errors
+  // that could cause customers to miss tier upgrade thresholds (CS#1)
   const calculateTotalSpending = (data: CustomerDetails): number => {
-    return data.orders.reduce((sum, order) => sum + parseFloat(order.total.amount), 0);
+    return sumMoney(data.orders.map(order => parseMoney(order.total.amount)));
   };
 
   // Note: getNextTierName, getNextTierThreshold, and isMaxTier are now provided by the API

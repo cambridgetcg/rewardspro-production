@@ -37,6 +37,7 @@
  */
 
 import { db } from "~/db.server";
+import { parseMoney } from "~/utils/money.server";
 
 // ============================================================================
 // Types - Rule Definition
@@ -754,7 +755,7 @@ export async function buildContextFromOrder(
         email: dbCustomer.email || '',
         tierId: dbCustomer.currentTierId || undefined,
         tierName: dbCustomer.tier?.name,
-        totalSpent: Number(dbCustomer.totalSpent) || 0,
+        totalSpent: parseMoney(dbCustomer.totalSpent),
         orderCount: dbCustomer.orderCount || 0,
         pointsBalance: dbCustomer.pointsBalance || 0,
         lifetimePoints: dbCustomer.lifetimePoints || 0,
@@ -769,15 +770,15 @@ export async function buildContextFromOrder(
     customer,
     order: order ? {
       id: order.id,
-      total: Number(order.total_price) || 0,
-      subtotal: Number(order.subtotal_price) || 0,
+      total: parseMoney(order.total_price),
+      subtotal: parseMoney(order.subtotal_price),
       lineItems: (order.line_items || []).map((li: any) => ({
         productId: String(li.product_id),
         variantId: String(li.variant_id),
         sku: li.sku,
         title: li.title,
         quantity: li.quantity,
-        price: Number(li.price) || 0,
+        price: parseMoney(li.price),
       })),
       discountCodes: order.discount_codes?.map((d: any) => d.code) || [],
       isFirstOrder: false, // Would need to check order count
