@@ -5,7 +5,10 @@ import prisma from "../db.server";
 
 export const action: ActionFunction = async ({ request }) => {
   if (request.method !== "POST") {
-    return json({ error: "Method not allowed" }, { status: 405 });
+    return json(
+      { error: "Method not allowed", code: "METHOD_NOT_ALLOWED", detail: "Only POST is accepted" },
+      { status: 405 }
+    );
   }
 
   try {
@@ -20,6 +23,9 @@ export const action: ActionFunction = async ({ request }) => {
     return json({ success: true });
   } catch (error) {
     console.error("Error dismissing review banner:", error);
-    return json({ error: "Failed to dismiss banner" }, { status: 500 });
+    return json(
+      { error: "Failed to dismiss banner", code: "BANNER_DISMISS_FAILED", detail: "See server logs" },
+      { status: 500 }
+    );
   }
 };
