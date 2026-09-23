@@ -1,3 +1,4 @@
+import { NEW_PAID_SUBSCRIPTIONS_RETIRED } from "~/constants/commercial-retirement";
 import {
   BlockStack,
   Box,
@@ -160,7 +161,7 @@ export function CurrentPlanCard({
                         Refresh
                       </Button>
                     )}
-                    {showUpgradeButton && onUpgrade && (
+                    {!NEW_PAID_SUBSCRIPTIONS_RETIRED && showUpgradeButton && onUpgrade && (
                       <Button
                         variant="primary"
                         onClick={onUpgrade}
@@ -294,7 +295,7 @@ export function CurrentPlanCard({
               )}
 
               {/* Compact Upgrade Button */}
-              {compact && showUpgradeButton && onUpgrade && (
+              {compact && !NEW_PAID_SUBSCRIPTIONS_RETIRED && showUpgradeButton && onUpgrade && (
                 <Button
                   fullWidth
                   onClick={onUpgrade}

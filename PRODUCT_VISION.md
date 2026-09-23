@@ -1,7 +1,8 @@
 # RewardsPro: Product Vision & Roadmap
 
 > **Last Updated**: January 2026
-> **Status**: Living Document
+> **Status**: Historical feature inventory. The former commercial roadmap is inactive.
+> **Current direction (2026-09-23)**: Understanding and optional exploration, without KPIs, revenue goals or growth targets. New paid subscriptions and paid plan changes are retired; existing obligations and records remain intact.
 
 ## Executive Summary
 
@@ -531,35 +532,11 @@ model CustomerChallenge {
 
 ---
 
-## Success Metrics
+## Current direction
 
-### Merchant Success Targets
-- Repeat purchase rate increase: +25%
-- Customer lifetime value increase: +40%
-- Program participation rate: >50%
-- Redemption rate: 60-80%
-- Net Promoter Score: >50
+Choose work through curiosity and the need to understand existing behavior. Financial and programme data may remain useful subject matter; it does not define project success or create a growth obligation.
 
-### Platform Success Targets
-- Monthly active merchants: 10,000
-- Total GMV through program: $1B annually
-- Feature adoption: >70% using 5+ features
-- Merchant churn rate: <3% monthly
-
----
-
-## Competitive Advantages
-
-### Technical
-1. **Deep Shopify Integration** - Native checkout, POS, customer accounts
-2. **Real-time Processing** - Instant tier calculations and rewards
-3. **Scalable Architecture** - Aurora Serverless, async processing
-4. **Rate-Based Model** - All features available, upgrade for capacity
-
-### Strategic
-1. **Ecosystem Network Effects** - Cross-merchant benchmarking potential
-2. **Data Flywheel** - More merchants = better recommendations
-3. **Integration Network** - Best-in-class connections
+New paid acquisition, plan upgrades and trial-to-paid review rewards are retired. Preserve cancellation, refunds, usage settlement, records and existing entitlement checks.
 
 ---
 
@@ -572,4 +549,4 @@ model CustomerChallenge {
 
 ---
 
-*This is a living document updated as features are implemented and priorities evolve.*
+*The feature inventory above preserves historical context. It does not impose a delivery or commercial obligation.*

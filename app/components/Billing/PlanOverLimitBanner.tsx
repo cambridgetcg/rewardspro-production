@@ -20,16 +20,12 @@ export function PlanOverLimitBanner({
     <Banner
       tone="critical"
       title="Plan limit exceeded"
-      action={{
-        content: "Upgrade now",
-        onAction: onUpgrade
-      }}
     >
       <p>
         You've processed {usageMetrics.currentUsage} orders this month,
         exceeding your {planDetails.displayName} plan limit of {usageMetrics.planLimit} orders.
         {planDetails.isFree
-          ? " Upgrade to continue earning cashback rewards on new orders."
+          ? " New paid upgrades are retired. Existing capacity limits still apply."
           : " Additional charges may apply for overage."}
       </p>
     </Banner>

@@ -1156,9 +1156,6 @@ export default function AnalyticsPage() {
             <Banner tone="info" title="Historical Data Access">
               <p>
                 Your current plan provides access to {data.maxHistoricalDays} days of historical data.
-                {data.maxHistoricalDays <= 7 && " Upgrade to Pro for 30 days, Max for 90 days, or Ultra for unlimited historical data."}
-                {data.maxHistoricalDays > 7 && data.maxHistoricalDays <= 30 && " Upgrade to Max for 90 days or Ultra for unlimited historical data."}
-                {data.maxHistoricalDays > 30 && data.maxHistoricalDays <= 90 && " Upgrade to Ultra for unlimited historical data."}
               </p>
             </Banner>
           </Layout.Section>

@@ -64,16 +64,12 @@ export default function LockedPage() {
           </BlockStack>
         </Banner>
 
-        {/* Empty State with Upgrade CTA */}
+        {/* Existing capacity notice */}
         <Card>
           <Box padding="600">
             <EmptyState
               heading="App Access Temporarily Limited"
               image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-              action={{
-                content: "Upgrade Plan",
-                onAction: () => navigate('/app/billing'),
-              }}
               secondaryAction={{
                 content: "View Billing Details",
                 onAction: () => navigate('/app/billing'),
@@ -81,11 +77,11 @@ export default function LockedPage() {
             >
               <BlockStack gap="400">
                 <Text as="p" variant="bodyLg" alignment="center">
-                  You've reached your monthly order processing limit. Upgrade your plan to continue using all features.
+                  You've reached your existing monthly order processing limit. New paid upgrades are retired.
                 </Text>
 
                 <Text as="p" variant="bodyMd" tone="subdued" alignment="center">
-                  Your usage will automatically reset at the beginning of next month, or you can upgrade now for immediate access.
+                  Your usage will automatically reset at the beginning of next month.
                 </Text>
               </BlockStack>
             </EmptyState>
@@ -225,10 +221,10 @@ export default function LockedPage() {
               <InlineStack align="space-between" blockAlign="center">
                 <BlockStack gap="200">
                   <Text as="h2" variant="headingMd">
-                    Ready to upgrade?
+                    Existing subscription records
                   </Text>
                   <Text as="p" variant="bodyMd" tone="subdued">
-                    Get more orders, advanced features, and priority support
+                    View existing billing details, cancellation and support
                   </Text>
                 </BlockStack>
                 <Button
@@ -236,7 +232,7 @@ export default function LockedPage() {
                   size="large"
                   onClick={() => navigate('/app/billing')}
                 >
-                  View Plans
+                  View existing agreement
                 </Button>
               </InlineStack>
             </BlockStack>

@@ -1,3 +1,4 @@
+import { PAID_SUBSCRIPTIONS_RETIRED_MESSAGE } from "~/constants/commercial-retirement";
 import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/node";
 import { redirect } from "@remix-run/node";
 import { Form, useLoaderData } from "@remix-run/react";
@@ -14,7 +15,7 @@ export const meta: MetaFunction = () => {
     {
       name: "description",
       content:
-        "RewardsPro pays automatic cashback as Shopify store credit. Set your reward tiers once and turn first-time buyers into repeat customers — no code required.",
+        "Explore loyalty rules, balances and existing reward records. New paid subscriptions are retired.",
     },
   ];
 };
@@ -47,13 +48,13 @@ function normalizeShopDomain(value: string): string {
 const valueProps = [
   {
     icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
-    title: "Bring customers back",
-    text: "A store-credit balance is a standing reason to return — customers come back to spend what they have waiting.",
+    title: "Read reward balances",
+    text: "Follow how recorded purchases and refunds affect a store-credit balance.",
   },
   {
     icon: "M3 17l6-6 4 4 8-8M14 7h7v7",
-    title: "Grow order value",
-    text: "Tiers reward bigger spenders with higher cashback, giving shoppers a reason to reach their next level.",
+    title: "Understand reward rules",
+    text: "Explore how tier thresholds determine cashback rates.",
   },
   {
     icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
@@ -72,13 +73,13 @@ const steps = [
   {
     when: "Between visits",
     title: "Their balance grows",
-    text: "Store credit waits in their account, ready to apply at checkout — a reason to come back and buy again.",
+    text: "Store credit stays recorded in their account and remains available under the existing programme.",
     icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
   },
   {
     when: "Next purchase",
-    title: "They reorder",
-    text: "Spending their credit makes the next order an easy yes, lifting repeat-purchase rate over time.",
+    title: "They use their balance",
+    text: "An eligible purchase reduces the recorded balance according to programme rules.",
     icon: "M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z",
   },
 ];
@@ -106,7 +107,7 @@ const features = [
   },
   {
     title: "Analytics",
-    text: "Track repeat-purchase rate, lifetime value, and program ROI so you can see what loyalty is earning you.",
+    text: "Read programme activity and understand the records behind reward balances.",
     icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z",
   },
   {
@@ -121,47 +122,6 @@ const trustPoints = [
   "Works with any Shopify theme",
   "No code or theme edits required",
   "Refunds reverse cashback automatically",
-];
-
-const pricingPlans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "month",
-    ordersIncluded: "200 orders/month",
-    features: ["Basic loyalty tiers", "Store credit tracking", "Customer dashboard", "Email support"],
-    cta: "Start free",
-    highlighted: false,
-  },
-  {
-    name: "Starter",
-    price: "$49",
-    period: "month",
-    ordersIncluded: "500 orders/month",
-    features: ["Everything in Free", "Unlimited tiers", "Custom emails", "Priority support", "Basic analytics"],
-    cta: "Start trial",
-    highlighted: true,
-  },
-  {
-    name: "Growth",
-    price: "$199",
-    period: "month",
-    ordersIncluded: "2,500 orders/month",
-    overageRate: "$20 per 100 additional",
-    features: ["Everything in Starter", "Advanced analytics", "API webhooks", "VIP tier features", "Phone support"],
-    cta: "Start trial",
-    highlighted: false,
-  },
-  {
-    name: "Plus",
-    price: "$999",
-    period: "month",
-    ordersIncluded: "7,500 orders/month",
-    overageRate: "$5 per 100 additional",
-    features: ["Everything in Growth", "Custom reporting", "Dedicated manager", "White-glove setup", "SLA guarantee"],
-    cta: "Contact sales",
-    highlighted: false,
-  },
 ];
 
 const faqs = [
@@ -210,7 +170,7 @@ function StoreLoginForm({ variant }: { variant: "hero" | "cta" }) {
       className={`lp-store-form lp-store-form--center${onBrand ? " lp-store-form--onbrand" : ""}`}
     >
       <label htmlFor={`shop-${variant}`} className="lp-store-label">
-        Enter your store to get started
+        Open your existing store
       </label>
       <div className="lp-store-row">
         <input
@@ -229,11 +189,11 @@ function StoreLoginForm({ variant }: { variant: "hero" | "cta" }) {
         {/* Submit the normalized domain so "my-store" still resolves. */}
         <input type="hidden" name="shop" value={normalizeShopDomain(shop)} />
         <button type="submit" className="lp-btn lp-btn-primary lp-btn-lg">
-          Install on Shopify
+          Open existing app
         </button>
       </div>
       <p id={`shop-hint-${variant}`} className="lp-store-hint">
-        Free to install · No credit card required · Setup in minutes
+        Existing records and support remain available. New paid subscriptions are retired.
       </p>
     </Form>
   );
@@ -275,8 +235,8 @@ export default function LandingPage() {
             <a href="#features" className="lp-nav-link">
               Features
             </a>
-            <a href="#pricing" className="lp-nav-link">
-              Pricing
+            <a href="#subscription-records" className="lp-nav-link">
+              Subscription records
             </a>
             <a href="#faq" className="lp-nav-link">
               FAQ
@@ -293,17 +253,16 @@ export default function LandingPage() {
         <div className="lp-container">
           <span className="lp-eyebrow">⚡ Loyalty &amp; cashback for Shopify</span>
           <h1 className="lp-hero-title">
-            Turn first-time buyers into <span className="lp-accent">repeat customers</span>
+            Understand how <span className="lp-accent">rewards work</span>
           </h1>
           <p className="lp-hero-subtitle">
-            RewardsPro pays automatic cashback as Shopify store credit. Set your reward tiers once, and every
-            order gives customers a balance — and a reason to come back.
+            Explore reward rules and the records they create. Curiosity does not need a revenue or growth target.
           </p>
           {showForm ? (
             <StoreLoginForm variant="hero" />
           ) : (
-            <a href="#pricing" className="lp-btn lp-btn-primary lp-btn-lg">
-              See plans
+            <a href="#subscription-records" className="lp-btn lp-btn-primary lp-btn-lg">
+              Subscription records
             </a>
           )}
           <div className="lp-hero-actions">
@@ -319,7 +278,7 @@ export default function LandingPage() {
         <div className="lp-container">
           <div className="lp-section-head">
             <h2 className="lp-section-title">Why RewardsPro?</h2>
-            <p className="lp-section-lede">Loyalty that runs itself and pays off in repeat orders.</p>
+            <p className="lp-section-lede">Explore the mechanics of loyalty systems.</p>
           </div>
           <div className="lp-grid lp-grid--3">
             {valueProps.map((v) => (
@@ -342,7 +301,7 @@ export default function LandingPage() {
         <div className="lp-container">
           <div className="lp-section-head">
             <h2 className="lp-section-title">How it works</h2>
-            <p className="lp-section-lede">Three steps to a loyalty loop that keeps customers coming back.</p>
+            <p className="lp-section-lede">Follow a reward balance through its lifecycle.</p>
           </div>
           <div className="lp-steps">
             {steps.map((step, i) => (
@@ -413,47 +372,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="lp-section" id="pricing">
+      <section className="lp-section" id="subscription-records">
         <div className="lp-container">
-          <div className="lp-section-head">
-            <h2 className="lp-section-title">Choose your plan</h2>
-            <p className="lp-section-lede">Start free and scale as you grow.</p>
-          </div>
-          <div className="lp-grid lp-grid--2 lp-grid--4">
-            {pricingPlans.map((plan) => (
-              <div key={plan.name} className={`lp-price${plan.highlighted ? " lp-price--featured" : ""}`}>
-                {plan.highlighted && <span className="lp-price-badge">Most popular</span>}
-                <h3 className="lp-price-name">{plan.name}</h3>
-                <div>
-                  <span className="lp-price-amount">{plan.price}</span>
-                  <span className="lp-price-period">/{plan.period}</span>
-                </div>
-                <p className="lp-price-orders">{plan.ordersIncluded}</p>
-                {plan.overageRate && <p className="lp-price-overage">{plan.overageRate}</p>}
-                <ul className="lp-price-features">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="lp-price-feature">
-                      <svg className="lp-check" width="18" height="18" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href="#get-started"
-                  className={`lp-btn ${plan.highlighted ? "lp-btn-primary" : "lp-btn-secondary"}`}
-                >
-                  {plan.cta}
-                </a>
-              </div>
-            ))}
-          </div>
+          <h2 className="lp-section-title">Existing subscription records</h2>
+          <p className="lp-section-lede">{PAID_SUBSCRIPTIONS_RETIRED_MESSAGE}</p>
+          <p>For existing billing or refund questions, contact support@rewardspro.app.</p>
         </div>
       </section>
 
@@ -493,15 +416,15 @@ export default function LandingPage() {
       {/* Final CTA — entry point repeated */}
       <section className="lp-cta" id="get-started">
         <div className="lp-container">
-          <h2 className="lp-cta-title">Ready to turn buyers into regulars?</h2>
+          <h2 className="lp-cta-title">Open existing records</h2>
           <p className="lp-cta-subtitle">
-            Install RewardsPro on your store and have cashback rewards running in minutes.
+            Existing agreements, balances, cancellation and support remain available.
           </p>
           {showForm ? (
             <StoreLoginForm variant="cta" />
           ) : (
-            <a href="#pricing" className="lp-btn lp-btn-primary lp-btn-lg">
-              See plans
+            <a href="#subscription-records" className="lp-btn lp-btn-primary lp-btn-lg">
+              Subscription records
             </a>
           )}
         </div>
@@ -513,7 +436,7 @@ export default function LandingPage() {
           <div className="lp-footer-top">
             <div>
               <p className="lp-footer-brand">RewardsPro</p>
-              <p className="lp-footer-tag">The easiest way to build customer loyalty on Shopify.</p>
+              <p className="lp-footer-tag">A place to understand reward systems and their records.</p>
             </div>
             <div>
               <p className="lp-footer-col-title">Explore</p>
@@ -529,8 +452,8 @@ export default function LandingPage() {
                   </a>
                 </li>
                 <li>
-                  <a href="#pricing" className="lp-footer-link">
-                    Pricing
+                  <a href="#subscription-records" className="lp-footer-link">
+                    Subscription records
                   </a>
                 </li>
                 <li>

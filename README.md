@@ -2,6 +2,12 @@
 
 A Shopify loyalty and rewards app built with Remix, TypeScript, Prisma, and Aurora Serverless.
 
+## Current direction
+
+This project exists for understanding and freely chosen exploration. There are no revenue, growth, conversion or KPI obligations. New paid subscriptions, paid plan changes and review-reward trials are retired. Existing agreements, invoices, usage settlement, cancellation, refunds and support keep their recorded lifecycle; this change does not rewrite anyone's entitlements.
+
+The current Vercel project named `rewardspro-production` uses `Cambridge-TCG-monorepo/apps/rewardspro`. This standalone repository is retained as source history; publishing it does not deploy that service.
+
 ## Features
 
 - **Tier System**: Automatic customer tier assignment based on spending, purchases, or subscriptions

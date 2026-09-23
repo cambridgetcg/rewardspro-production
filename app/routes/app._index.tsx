@@ -640,46 +640,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const fetcher = useFetcher();
 
-  // Review banner state: 'idle' | 'leaving' | 'claimed'
-  const [reviewBannerState, setReviewBannerState] = useState<'idle' | 'leaving' | 'claimed'>('idle');
-  const [reviewBannerVisible, setReviewBannerVisible] = useState(!data?.reviewBannerDismissed);
-  const reviewFetcher = useFetcher();
-
-  const handleLeaveReview = useCallback(() => {
-    window.open('https://apps.shopify.com/rewards-pro#modal-show=ReviewListingModal', '_blank');
-    setReviewBannerState('leaving');
-  }, []);
-
-  const handleReviewClaimed = useCallback(() => {
-    setReviewBannerState('claimed');
-    reviewFetcher.submit({}, { method: 'POST', action: '/api/review-claimed' });
-  }, [reviewFetcher]);
-
-  // Watch for the confirmationUrl coming back from the review-claimed API
-  useEffect(() => {
-    if (reviewFetcher.state === 'idle' && reviewFetcher.data) {
-      const d = reviewFetcher.data as {
-        success?: boolean;
-        confirmationUrl?: string;
-        billingError?: string;
-        alreadyClaimed?: boolean;
-        skipped?: boolean;
-      };
-      if (d.confirmationUrl) {
-        // Redirect merchant to Shopify billing confirmation page
-        window.location.href = d.confirmationUrl;
-      } else {
-        // Billing failed or skipped — still hide the banner after a beat
-        setTimeout(() => setReviewBannerVisible(false), 3000);
-      }
-    }
-  }, [reviewFetcher.state, reviewFetcher.data]);
-
-  const handleDismissReviewBanner = useCallback(() => {
-    setReviewBannerVisible(false);
-    reviewFetcher.submit({}, { method: 'POST', action: '/api/dismiss-review-banner' });
-  }, [reviewFetcher]);
-
   // Analytics tracking
   const { trackCustomEvent } = useAnalytics({ pageTitle: 'Dashboard' });
 
@@ -808,42 +768,6 @@ export default function Dashboard() {
       <Page title="Dashboard">
       <Layout>
         {/* Review Banner — compact */}
-        {reviewBannerVisible && (
-          <Layout.Section>
-            <Banner
-              title={
-                reviewBannerState === 'claimed'
-                  ? 'Thank you! Setting up 3 months of Pro…'
-                  : reviewBannerState === 'leaving'
-                    ? 'Done writing your review?'
-                    : 'Enjoying Rewards Pro? Get 3 months of Pro free.'
-              }
-              tone="info"
-              action={
-                reviewBannerState === 'claimed'
-                  ? undefined
-                  : reviewBannerState === 'leaving'
-                    ? { content: "I've left my review", onAction: handleReviewClaimed }
-                    : { content: '⭐ Leave a Review', onAction: handleLeaveReview }
-              }
-              secondaryAction={
-                reviewBannerState === 'idle'
-                  ? { content: 'Maybe later', onAction: handleDismissReviewBanner }
-                  : reviewBannerState === 'leaving'
-                    ? { content: 'Not yet', onAction: handleDismissReviewBanner }
-                    : undefined
-              }
-              onDismiss={reviewBannerState !== 'claimed' ? handleDismissReviewBanner : undefined}
-            >
-              {reviewBannerState === 'idle' && (
-                <Text as="p" variant="bodySm">
-                  Share your experience on the Shopify App Store and we'll upgrade you for free.
-                </Text>
-              )}
-            </Banner>
-          </Layout.Section>
-        )}
-
         {/* Plan + Usage — the hero section */}
         <Layout.Section>
           <Card>
@@ -860,7 +784,7 @@ export default function Dashboard() {
                   </Text>
                 </BlockStack>
                 <Button variant="plain" onClick={() => navigate('/app/billing')}>
-                  {data.activeSubscription?.name?.includes('Ultra') ? 'Manage Plan' : 'Upgrade'}
+                  Manage existing subscription
                 </Button>
               </InlineStack>
 

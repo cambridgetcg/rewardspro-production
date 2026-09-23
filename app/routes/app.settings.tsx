@@ -1,3 +1,4 @@
+import { PAID_SUBSCRIPTIONS_RETIRED_MESSAGE, PAID_SUBSCRIPTIONS_RETIRED_STATUS, paidSubscriptionsRetiredResult } from "~/constants/commercial-retirement";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher, useNavigation, useSearchParams, useNavigate } from "@remix-run/react";
@@ -800,6 +801,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const shop = session.shop;
 
+    const formData = await request.formData();
+    const intent = formData.get("intent") as string;
+    if (intent === "upgrade") {
+      return json(paidSubscriptionsRetiredResult(), { status: PAID_SUBSCRIPTIONS_RETIRED_STATUS });
+    }
+
     // Get active subscription for downgrade handling
     let activeSubscription = null;
     if (billing) {
@@ -816,9 +823,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     
     // Rate limiting
     checkRateLimit(shop);
-
-    const formData = await request.formData();
-    const intent = formData.get("intent") as string;
 
     // Handle order sync
     if (intent === "sync-orders") {
@@ -876,47 +880,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         inProgress: false,
         progress: 100
       });
-    }
-
-    // Handle billing upgrade
-    if (intent === "upgrade") {
-      const planName = formData.get("plan") as string;
-
-      if (!billing) {
-        return json({ error: "Billing not configured" }, { status: 500 });
-      }
-
-      try {
-        // Import plan names
-        const { FREE_PLAN, MONTHLY_PLAN, ANNUAL_PLAN } = await import("../shopify.server");
-
-        // Determine which plan to request
-        let requestPlan = MONTHLY_PLAN; // Default to monthly
-        if (planName === "RewardsPro Annual") {
-          requestPlan = ANNUAL_PLAN;
-        } else if (planName === "RewardsPro Free") {
-          requestPlan = FREE_PLAN;
-        }
-
-        // Request the billing plan
-        const billingResponse = await billing.request({
-          plan: requestPlan as any,
-          isTest: process.env.NODE_ENV === 'development',
-          returnUrl: `${process.env.SHOPIFY_APP_URL}/app/settings`,
-        });
-
-        // This will return a redirect response to Shopify's billing page
-        return billingResponse;
-      } catch (billingError: any) {
-        // If billing.request throws a Response, return it
-        if (billingError instanceof Response) {
-          console.log("[Settings Action] Billing request returned Response, forwarding it");
-          return billingError;
-        }
-
-        console.error("[Settings Action] Error requesting plan:", billingError);
-        return json({ error: "Failed to request billing plan" }, { status: 500 });
-      }
     }
 
     // Handle subscription cancellation
@@ -3384,35 +3347,7 @@ export default function SettingsPage() {
                         </BlockStack>
                       </Card>
 
-                      {/* Upgrade CTA for non-Ultra plans */}
-                      {!(subscriptionInfo?.name || currentPlan?.planName || activeSubscription?.name || '').includes('Ultra') && (
-                        <Card>
-                          <BlockStack gap="400">
-                            <InlineStack gap="300" blockAlign="center">
-                              <div style={{
-                                width: '48px',
-                                height: '48px',
-                                borderRadius: '12px',
-                                background: 'linear-gradient(135deg, #d69e2e20, #d69e2e40)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}>
-                                <Text as="span" variant="headingLg">⭐</Text>
-                              </div>
-                              <BlockStack gap="050">
-                                <Text as="h3" variant="headingMd">Unlock More Features</Text>
-                                <Text as="p" variant="bodySm" tone="subdued">
-                                  Upgrade your plan to access advanced features and higher limits
-                                </Text>
-                              </BlockStack>
-                            </InlineStack>
-                            <Button variant="primary" onClick={() => navigate('/app/billing')}>
-                              View All Plans
-                            </Button>
-                          </BlockStack>
-                        </Card>
-                      )}
+                      <Banner tone="info"><Text as="p">{PAID_SUBSCRIPTIONS_RETIRED_MESSAGE}</Text></Banner>
 
                       {/* Billing Support */}
                       <Banner tone="info">
