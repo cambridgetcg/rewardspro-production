@@ -58,8 +58,8 @@ const valueProps = [
   },
   {
     icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
-    title: "Run on autopilot",
-    text: "Cashback is calculated and issued automatically on every paid order. Configure your tiers once and you're done.",
+    title: "Automatic order processing",
+    text: "Eligible paid orders calculate cashback from the configured rules.",
   },
 ];
 
@@ -87,12 +87,12 @@ const steps = [
 const features = [
   {
     title: "Tiered rewards",
-    text: "Create unlimited tiers with progressive cashback rates that reward your highest-spending customers.",
+    text: "Configure tier thresholds and their cashback rates.",
     icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
   },
   {
     title: "Native store credit",
-    text: "Balances are tracked through Shopify's own store-credit system and apply at checkout — nothing bolted on.",
+    text: "Balances are tracked through Shopify's store-credit system and can be applied to eligible purchases.",
     icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
   },
   {
@@ -112,15 +112,15 @@ const features = [
   },
   {
     title: "Email updates",
-    text: "Automated notifications for tier changes and cashback earned keep customers engaged with their rewards.",
+    text: "Notifications record tier changes and cashback earned.",
     icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z",
   },
 ];
 
 const trustPoints = [
   "Uses Shopify's native store credit",
-  "Works with any Shopify theme",
-  "No code or theme edits required",
+  "Uses Shopify customer accounts",
+  "Theme-specific widget setup may be needed",
   "Refunds reverse cashback automatically",
 ];
 
@@ -128,12 +128,12 @@ const faqs = [
   {
     question: "How does the loyalty program work?",
     answer:
-      "RewardsPro automatically tracks customer purchases and awards store credit based on your configured tiers. Customers earn cashback percentages that increase as they spend more, encouraging repeat purchases.",
+      "RewardsPro records eligible purchases and calculates store credit from your configured tier rules.",
   },
   {
     question: "Can I customize the reward tiers?",
     answer:
-      "Yes. You have full control over tier names, spending thresholds, and cashback percentages. Set up as many tiers as you want to match your business strategy.",
+      "Programme settings include tier names, spending thresholds and cashback percentages.",
   },
   {
     question: "How do customers redeem their rewards?",
@@ -143,7 +143,7 @@ const faqs = [
   {
     question: "Does it work with my Shopify theme?",
     answer:
-      "RewardsPro works with any Shopify theme. It integrates directly with Shopify's native store-credit system, so there's nothing to edit in your theme.",
+      "RewardsPro uses Shopify's native store-credit system. Storefront widgets may need theme-specific setup.",
   },
   {
     question: "What happens with refunds?",
@@ -256,7 +256,7 @@ export default function LandingPage() {
             Understand how <span className="lp-accent">rewards work</span>
           </h1>
           <p className="lp-hero-subtitle">
-            Explore reward rules and the records they create. Curiosity does not need a revenue or growth target.
+            Read reward rules, customer balances and the purchases and refunds behind them.
           </p>
           {showForm ? (
             <StoreLoginForm variant="hero" />
@@ -325,8 +325,8 @@ export default function LandingPage() {
       <section className="lp-section" id="features">
         <div className="lp-container">
           <div className="lp-section-head">
-            <h2 className="lp-section-title">Everything you need for customer loyalty</h2>
-            <p className="lp-section-lede">Powerful features that work seamlessly with your Shopify store.</p>
+            <h2 className="lp-section-title">Programme features</h2>
+            <p className="lp-section-lede">Settings and records for your Shopify programme.</p>
           </div>
           <div className="lp-grid lp-grid--2 lp-grid--3-lg">
             {features.map((f) => (
@@ -349,7 +349,7 @@ export default function LandingPage() {
         <div className="lp-container">
           <div className="lp-section-head">
             <h2 className="lp-section-title">Built natively for Shopify</h2>
-            <p className="lp-section-lede">No workarounds, no theme surgery — it just plugs in.</p>
+            <p className="lp-section-lede">The app uses Shopify order events and store-credit records.</p>
           </div>
           <div className="lp-grid lp-grid--2 lp-grid--4">
             {trustPoints.map((point) => (
