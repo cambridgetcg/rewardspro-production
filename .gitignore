@@ -18,6 +18,8 @@ database.sqlite
 # Claude Desktop MCP config (user-specific paths)
 # Use claude-desktop-config.template.json as reference
 claude-desktop-config.json
+# Project MCP config: it can carry credentials, so it stays local
+.mcp.json
 
 # Documentation and guide files (non-functional)
 *.md
